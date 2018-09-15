@@ -1,0 +1,12 @@
+# BUILD FILE SYNTAX: SKYLARK
+java_library(name = 'cavisson',
+  srcs = glob([
+    '*.java',
+  ]),
+  deps = ['//third_party/java/okhttp3:okhttp',
+          '//third_party/java/servlet:javax.servlet-api',
+          '//third_party/java/gson:gson',
+  ],
+  visibility = [
+  'PUBLIC'],
+)
