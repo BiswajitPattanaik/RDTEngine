@@ -19,6 +19,7 @@ public class VideoRecorder{
     private String workingDir =  null;
     private String sessionVideoPath = null;
     private String sessionDirPath = null;
+    private String deviceId = null;
     private static final Logger log = Logger.getLogger(VideoRecorder.class.getName());
 
     public static void main(String[] s)throws Exception
@@ -28,9 +29,10 @@ public class VideoRecorder{
         Thread.sleep(150000);
         recorder.stopRecording();*/
     }
-    public VideoRecorder(String workingDir , String sessionId){
+    public VideoRecorder(String workingDir , String sessionId,String deviceId){
         this.workingDir = workingDir;
         this.sessionId = sessionId ;
+        this.deviceId = deviceId;
         sessionVideoPath = workingDir+"/"+sessionId+"/SessionVideo.mp4";
         sessionDirPath = workingDir+"/"+sessionId;
     }
@@ -70,7 +72,7 @@ public class VideoRecorder{
             initial_count = Thread.activeCount();
             while(counter <=3)
             {
-                new Thread(new VideoLoader("test"+counter+".mp4",workingDir,sessionId)).start();
+                new Thread(new VideoLoader("test"+counter+".mp4",workingDir,sessionId,deviceId)).start();
                 counter++;
                 log.fine("Current Thread count is"+Thread.activeCount());
             }

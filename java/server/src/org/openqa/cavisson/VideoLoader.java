@@ -3,33 +3,36 @@ import java.io.*;
 import java.util.logging.Logger;
 public class VideoLoader extends Thread
 {
-    public String videoName ;
-    public String workingDir;
-    public String sessionId;
+    private String videoName ;
+    private String workingDir;
+    private String sessionId;
+    private String deviceId;
+    private AdbCommandExecutor adbCommandExecutor = null;
     private static final Logger log = Logger.getLogger(VideoLoader.class.getName());
-    public VideoLoader(String videoName,String workingDir , String sessionId)
+    public VideoLoader(String videoName,String workingDir , String sessionId,String deviceId)throws Exception
     {
         super();
         this.videoName = videoName;
         this.workingDir = workingDir;
         this.sessionId = sessionId;
+        this.deviceId = deviceId;
+        if(deviceId != null)
+            adbCommandExecutor = new AdbCommandExecutor(deviceId);
+        else
+            adbCommandExecutor = new AdbCommandExecutor();
     }
     private boolean videoLoad(String videoName)throws Exception
     {  
         log.fine("pulling video = "+videoName); 
-        String lsCmd = "/home/netstorm/Android/Sdk/platform-tools/adb shell ls /sdcard/"+videoName.split("\\.")[0]+"*"+videoName.split("\\.")[1];
-        log.fine("ls Cmd = "+lsCmd);
-        String videoNameNew = runCommandOutput(lsCmd);
+        String lsCmd = "shell ls /sdcard/"+videoName.split("\\.")[0]+"*"+videoName.split("\\.")[1];
+        String videoNameNew = adbCommandExecutor.runCommandOutput(lsCmd);
         if(videoNameNew.contains("No such file or directory") || videoNameNew.equals(""))
         {
             return false;
         }
         log.fine("VideoNameNew"+videoNameNew);
-        //String pullCmd = "/home/netstorm/Android/Sdk/platform-tools/adb pull /sdcard/"+videoNameNew.split("/")[2]+" /tmp/"+videoName;
-        String pullCmd = "/home/netstorm/Android/Sdk/platform-tools/adb pull /sdcard/"+videoNameNew.split("/")[2]+" "+workingDir+"/"+sessionId+"/"+videoName;
-        log.fine("adb PULL "+pullCmd);
-        String output = runCommandOutput(pullCmd);
-        //System.out.println(output);
+        String pullCmd = "pull /sdcard/"+videoNameNew.split("/")[2]+" "+workingDir+"/"+sessionId+"/"+videoName;
+        String output = adbCommandExecutor.runCommandOutput(pullCmd);
         return true;
     }
     public void run()
