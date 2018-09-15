@@ -67,17 +67,16 @@ public class AdbCommandExecutor{
 
   
 
-  public int tcpForward(int srcPort , int destPort){
-    Process p = Runtime.getRuntime().exec(adbExecutorPath + " -s " + deviceId + TCP_FORWARD_COMMAND + String.format("tcp:%d tcp:%d",srcPort,destPort);
+  public int tcpForward(int srcPort , int destPort)throws Exception{
+    Process p = Runtime.getRuntime().exec(adbExecutorPath + " -s " + deviceId + TCP_FORWARD_COMMAND + String.format("tcp:%d tcp:%d",srcPort,destPort));
     p.waitFor();
     return p.exitValue();
   }
 
 
-  public  boolean launchApplicationByPackageName(String packageName,String activityName){
+  public  boolean launchApplicationByPackageName(String packageName,String activityName)throws Exception{
     Process p = Runtime.getRuntime().exec(adbExecutorPath + " -s " + deviceId + ANDROID_LAUNCH_APP_COMMAND + packageName + "/" + activityName + " -S");
     p.waitFor();
-    log.fine("The command executed is"+cmd);
     BufferedReader buf = new BufferedReader(new InputStreamReader(p.getInputStream()));
     String line = "";
     String output = "";
