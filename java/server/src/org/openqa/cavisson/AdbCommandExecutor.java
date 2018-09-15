@@ -6,8 +6,10 @@ public class AdbCommandExecutor{
   public final String  ABD_SDK_RELATIVE_PATH = "platform-tools/adb";
   private String adbExecutorPath = null;
   private String adbExecutorRelativePath = ABD_SDK_RELATIVE_PATH;
-  private String deviceId = null; 
-  
+  private String deviceId = null;
+  public final String ANDROID_PING_COMMAND = " shell echo ping";
+  public final String ANDROID_LAUNCH_APP_COMMAND = " shell am start -W -n ";
+  public final String TCP_FORWARD_COMMAND = " forward ";
   //Constructor for "AdbCommandExecutor" Class
   private static final Logger log = Logger.getLogger(AdbCommandExecutor.class.getName());
 
@@ -47,8 +49,9 @@ public class AdbCommandExecutor{
     return p.exitValue();
   } 
 
+  //Ping Command 
   public boolean ping()throws Exception{
-    Process p = Runtime.getRuntime().exec(adbExecutorPath + " -s " + deviceId + " shell echo ping" );
+    Process p = Runtime.getRuntime().exec(adbExecutorPath + " -s " + deviceId + ANDROID_PING_COMMAND );
     p.waitFor();
     BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream())); 
     String line = null;
@@ -60,6 +63,35 @@ public class AdbCommandExecutor{
       return false;
     }
       
+  }
+
+  
+
+  public int tcpForward(int srcPort , int destPort){
+    Process p = Runtime.getRuntime().exec(adbExecutorPath + " -s " + deviceId + TCP_FORWARD_COMMAND + String.format("tcp:%d tcp:%d",srcPort,destPort);
+    p.waitFor();
+    return p.exitValue();
+  }
+
+
+  public  boolean launchApplicationByPackageName(String packageName,String activityName){
+    Process p = Runtime.getRuntime().exec(adbExecutorPath + " -s " + deviceId + ANDROID_LAUNCH_APP_COMMAND + packageName + "/" + activityName + " -S");
+    p.waitFor();
+    log.fine("The command executed is"+cmd);
+    BufferedReader buf = new BufferedReader(new InputStreamReader(p.getInputStream()));
+    String line = "";
+    String output = "";
+    while ((line = buf.readLine()) != null) {
+      output = output+"\n"+line;
+      if (line.contains("Status")){
+        if(line.split(":")[1].substring(1).equalsIgnoreCase("ok")){
+          return true;
+        }
+      }
+    }
+    log.fine("Command output is = "+output);
+    return false; 
+ 
   }
 
   //GetExecutorPath for Adb 
