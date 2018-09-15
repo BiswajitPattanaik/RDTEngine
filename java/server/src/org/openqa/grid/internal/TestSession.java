@@ -130,7 +130,7 @@ public class TestSession {
       lastActivity = this.clock.millis();
       try{
         currentWorkingDir=createWorkingDir();
-        videoRecorder = new VideoRecorder(currentWorkingDir,internalKey);
+        videoRecorder = new VideoRecorder(currentWorkingDir,internalKey,null);
         networkLoggerHandler = new NetworkLoggerHandler(8099);
         try{
             boolean isNetworkLogEnabled = getRequestedCapabilities().get("networkLogging").toString().equals("true");    
@@ -139,7 +139,7 @@ public class TestSession {
                 setNetworkLoggingFlag(NETWORk_LOGGING_ACTIVE);
                 networkLoggerHandler.startNetworkLogger();
             } 
-        }catch(Exception e){log.fine("Not able to get the networkLogging flag from Requested Capabilities");} 
+        }catch(Exception e){log.fine("Not able to get the networkLogging flag from Requested Capabilities"+e.getMessage());} 
         boolean isVideoRecordingEnabled =  getRequestedCapabilities().get("videoRecording").toString().equals("true");
         String platformName = getRequestedCapabilities().get("platformName").toString();
         if( isVideoRecordingEnabled && platformName.equalsIgnoreCase("Android")){
