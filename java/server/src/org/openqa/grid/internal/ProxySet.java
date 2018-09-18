@@ -125,11 +125,21 @@ public class ProxySet implements Iterable<RemoteProxy> {
     // test running, to avoid putting all the load of the first
     // proxies.
     List<RemoteProxy> sorted = getSorted();
+    //By Biswajit handling case when proxy set equals 
+    int proxySize = size();
+    log.fine("Number Of Nodes = "+proxySize);
+    
     log.fine("Available nodes: " + sorted);
-    return sorted.stream()
-        .map(proxy -> proxy.getNewSession(desiredCapabilities))
-        .filter(Objects::nonNull)
-        .findFirst().orElse(null);
+    if(proxySize > 0){
+      return sorted.stream()
+          .map(proxy -> proxy.getNewSession(desiredCapabilities))
+          .filter(Objects::nonNull)
+          .findFirst().orElse(null);
+    }
+    else{
+      log.fine("Returned null Test Session");
+      return null;
+    }
   }
 
   public Iterator<RemoteProxy> iterator() {
@@ -142,7 +152,7 @@ public class ProxySet implements Iterable<RemoteProxy> {
 
   public void verifyAbilityToHandleDesiredCapabilities(Map<String, Object> desiredCapabilities) {
     if (proxies.isEmpty()) {
-      if (throwOnCapabilityNotPresent) {
+      if (throwOnCapabilityNotPresent  && !(desiredCapabilities.containsKey("automationName")?desiredCapabilities.get("automationName").toString().equalsIgnoreCase("RDT"):false)) {
         throw new GridException("Empty pool of VM for setup "
                                 + new DesiredCapabilities(desiredCapabilities));
       }
