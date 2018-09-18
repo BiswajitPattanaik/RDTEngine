@@ -260,7 +260,7 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
   private boolean takeRequestHandler(RequestHandler handler) {
     final TestSession session = proxies.getNewSession(handler.getRequest().getDesiredCapabilities());
     //Added By Biswajit to handle sessioncreated = false when automationName != "RDT"
-    final boolean sessionCreated = (session != null || handler.getRequest().getDesiredCapabilities().get("automationName").equals("RDT"));
+    final boolean sessionCreated = (session != null || (handler.getRequest().getDesiredCapabilities().containsKey("automationName")?handler.getRequest().getDesiredCapabilities().get("automationName").equals("RDT"):false));
     if (sessionCreated) {
       RemoteProxy p1 = null;
       try{
