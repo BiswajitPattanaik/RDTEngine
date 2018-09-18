@@ -27,14 +27,20 @@ import org.openqa.grid.web.servlet.handler.RequestHandler;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.server.log.LoggingManager;
 
+import org.openqa.grid.common.SeleniumProtocol;
 import java.util.List;
 import java.util.Set;
+import java.util.HashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+
 
 /**
  * Kernel of the grid. Keeps track of what's happening, what's free/used and assigns resources to
@@ -213,7 +219,11 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
   public void addNewSessionRequest(RequestHandler handler) {
     try {
       lock.lock();
-
+      // Added By Biswajit to Design new RDT Architecture .
+      if(handler.getRequest().getDesiredCapabilities().get("automationName").toString().equalsIgnoreCase("RDT")){
+        proxies.setThrowOnCapabilityNotPresent(false);
+        LOG.fine("automation RDT Found "+handler.getRequest().getDesiredCapabilities());
+      }
       proxies.verifyAbilityToHandleDesiredCapabilities(handler.getRequest().getDesiredCapabilities());
       newSessionQueue.add(handler);
       fireMatcherStateChanged();
@@ -249,10 +259,37 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
 
   private boolean takeRequestHandler(RequestHandler handler) {
     final TestSession session = proxies.getNewSession(handler.getRequest().getDesiredCapabilities());
-    final boolean sessionCreated = session != null;
+    //Added By Biswajit to handle sessioncreated = false when automationName != "RDT"
+    final boolean sessionCreated = (session != null || handler.getRequest().getDesiredCapabilities().get("automationName").equals("RDT"));
     if (sessionCreated) {
-      activeTestSessions.add(session);
-      handler.bindSession(session);
+      RemoteProxy p1 = null;
+      try{
+      p1 = RemoteProxyFactory.getNewBasicRemoteProxy(new HashMap(), "http://localhost:4444", this);
+      }catch(Exception e){LOG.fine(" Exception Caunght"+e.getMessage());}
+      this.add(p1);
+      TestSlot testSlot = new TestSlot(p1, SeleniumProtocol.Selenium, "", handler.getRequest().getDesiredCapabilities());
+      TestSession testSession = new TestSession(testSlot, handler.getRequest().getDesiredCapabilities(), new Clock(){
+      private long time = 17;
+      @Override
+      public Instant instant() {
+        return Instant.ofEpochMilli(time);
+      }
+
+      @Override
+      public ZoneId getZone() {
+        return ZoneId.systemDefault();
+      }
+
+      @Override
+      public Clock withZone(ZoneId zone) {
+        return this;
+      }
+      });
+      testSession.setExternalKey(new ExternalSessionKey("testKey"));
+     
+      
+      activeTestSessions.add(testSession);
+      handler.bindSession(testSession);
     }
     return sessionCreated;
   }
