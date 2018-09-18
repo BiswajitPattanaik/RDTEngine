@@ -111,7 +111,7 @@ public class TestSession {
   private final Clock clock;
   private volatile boolean forwardingRequest;
   private final int MAX_NETWORK_LATENCY = 1000;
-
+  //private RDTClient rdtClient = null ;
   public String getInternalKey() {
     return internalKey;
   }
@@ -133,15 +133,29 @@ public class TestSession {
         videoRecorder = new VideoRecorder(currentWorkingDir,internalKey,null);
         networkLoggerHandler = new NetworkLoggerHandler(8099);
         try{
+          if(getRequestedCapabilities().containsKey("networkLogging")){
             boolean isNetworkLogEnabled = getRequestedCapabilities().get("networkLogging").toString().equals("true");    
             if(isNetworkLogEnabled){
-                log.fine("Received the request to start network logging"); 
-                setNetworkLoggingFlag(NETWORk_LOGGING_ACTIVE);
-                networkLoggerHandler.startNetworkLogger();
-            } 
+              log.fine("Received the request to start network logging"); 
+              setNetworkLoggingFlag(NETWORk_LOGGING_ACTIVE);
+              networkLoggerHandler.startNetworkLogger();
+            }
+            else{
+              log.fine(" [NetworkLogger] \"networkLogging\" capability found but set to false .");
+            }
+          }
+          else{
+            log.fine(" [ NetworkLogger ] Network loggin not found in the requested capabilites");
+          }  
         }catch(Exception e){log.fine("Not able to get the networkLogging flag from Requested Capabilities"+e.getMessage());} 
-        boolean isVideoRecordingEnabled =  getRequestedCapabilities().get("videoRecording").toString().equals("true");
-        String platformName = getRequestedCapabilities().get("platformName").toString();
+        boolean isVideoRecordingEnabled = false;
+        if(getRequestedCapabilities().containsKey("videoRecording")){
+          isVideoRecordingEnabled =  getRequestedCapabilities().get("videoRecording").toString().equals("true");
+        }
+        String platformName = "";
+        if(getRequestedCapabilities().containsKey("platformName")){
+          platformName = getRequestedCapabilities().get("platformName").toString();
+        }
         if( isVideoRecordingEnabled && platformName.equalsIgnoreCase("Android")){
           log.fine("Got request to start video Recording ");
           startVideoRecording();
@@ -271,7 +285,7 @@ public class TestSession {
     String currentThreadName = Thread.currentThread().getName();
     setThreadDisplayName();
     forwardingRequest = true;
-
+    log.fine("Requested capabilities for Test Session is "+getRequestedCapabilities());
     try {
       if (slot.getProxy() instanceof CommandListener) {
         log.fine(" [Important] Check Proxy = "+slot.getProxy());
