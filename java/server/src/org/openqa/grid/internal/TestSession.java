@@ -23,6 +23,8 @@ import static org.openqa.selenium.remote.http.HttpMethod.POST;
 import com.google.common.io.ByteStreams;
 import com.google.common.net.MediaType;
 
+import org.openqa.cavisson.rdt.RDTClient;
+import org.openqa.cavisson.rdt.RDTBasedRequest;
 import org.openqa.cavisson.VideoRecorder;
 import org.openqa.cavisson.NetworkLoggerHandler;
 import org.openqa.grid.common.SeleniumProtocol;
@@ -111,7 +113,7 @@ public class TestSession {
   private final Clock clock;
   private volatile boolean forwardingRequest;
   private final int MAX_NETWORK_LATENCY = 1000;
-  //private RDTClient rdtClient = null ;
+  private RDTClient rdtClient = null ;
   public String getInternalKey() {
     return internalKey;
   }
@@ -285,13 +287,22 @@ public class TestSession {
     String currentThreadName = Thread.currentThread().getName();
     setThreadDisplayName();
     forwardingRequest = true;
-    log.fine("Requested capabilities for Test Session is "+getRequestedCapabilities());
+    HashMap<String,Object> requestedCapabilities = (HashMap<String,Object>)getRequestedCapabilities();
+    log.fine("Requested capabilities for Test Session is "+requestedCapabilities);
+    if(requestedCapabilities.containsKey("automationName")?requestedCapabilities.get("automationName").toString().equalsIgnoreCase("RDT"):false){
+      log.fine(" [ RDT ] RDT Type Test Session found");
+      RDTBasedRequest rdtBasedRequest = new RDTBasedRequest((HashMap<String,Object>)request.getDesiredCapabilities(),requestedCapabilities,request.getMethod(),request.getPathInfo(),newSessionRequest);
+      rdtClient = new RDTClient();
+      rdtClient.execute(rdtBasedRequest);
+      return ""; 
+    }
+    
     try {
       if (slot.getProxy() instanceof CommandListener) {
         log.fine(" [Important] Check Proxy = "+slot.getProxy());
         ((CommandListener) slot.getProxy()).beforeCommand(this, request, response);
       }
-
+      
       lastActivity = clock.millis();
 
       HttpRequest proxyRequest = prepareProxyRequest(request);
