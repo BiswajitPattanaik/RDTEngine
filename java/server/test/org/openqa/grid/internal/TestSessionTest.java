@@ -71,8 +71,7 @@ public class TestSessionTest {
       registry.add(p1);
 
       final HashMap<String, Object> capabilities = new HashMap<>();
-      TestSlot testSlot = new TestSlot(p1, SeleniumProtocol.WebDriver, "", capabilities
-      );
+      TestSlot testSlot = new TestSlot(p1, SeleniumProtocol.WebDriver, "", capabilities);
       final TestClock timeSource = new TestClock();
       TestSession testSession = new TestSession(testSlot, capabilities, timeSource);
       testSession.setExternalKey(new ExternalSessionKey("testKey"));

@@ -291,6 +291,12 @@ public class TestSession {
     log.fine("Requested capabilities for Test Session is "+requestedCapabilities);
     if(requestedCapabilities.containsKey("automationName")?requestedCapabilities.get("automationName").toString().equalsIgnoreCase("RDT"):false){
       log.fine(" [ RDT ] RDT Type Test Session found");
+      if ("POST".equalsIgnoreCase(request.getMethod())) {
+        Scanner s = new Scanner(request.getInputStream(), "UTF-8").useDelimiter("\\A");
+        String requestBody = s.hasNext() ? s.next() : "";
+        log.fine(requestBody);
+      }
+        
       RDTBasedRequest rdtBasedRequest = new RDTBasedRequest((HashMap<String,Object>)request.getDesiredCapabilities(),requestedCapabilities,request.getMethod(),request.getPathInfo(),newSessionRequest);
       try{
         rdtClient = new RDTClient();
@@ -310,7 +316,11 @@ public class TestSession {
       HttpRequest proxyRequest = prepareProxyRequest(request);
 
       HttpResponse proxyResponse = sendRequestToNode(proxyRequest);
-      log.fine(" ***** [ DEBUG ] *****"+proxyResponse.toString());
+      log.fine(" ***** [ DEBUG ] *****"+proxyResponse.getContentString());
+      log.fine(" ***** [ DEBUG ] *****"+proxyResponse.getContentString().length());
+      for (String headerName : proxyResponse.getHeaderNames()){
+        log.fine(" ***** [ DEBUG ] *****" + headerName + " : "+proxyResponse.getHeader(headerName));
+      }
       lastActivity = clock.millis();
       final int statusCode = proxyResponse.getStatus();
       response.setStatus(statusCode);

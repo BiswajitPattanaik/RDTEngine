@@ -221,7 +221,7 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
       lock.lock();
       // Added By Biswajit to Design new RDT Architecture .
       //if(handler.getRequest().getDesiredCapabilities().get("automationName").toString().equalsIgnoreCase("RDT")){
-      if(handler.getRequest().getDesiredCapabilities().containsKey("automationName")?handler.getRequest().getDesiredCapabilities().toString().equalsIgnoreCase("RDT"):false){
+      if(handler.getRequest().getDesiredCapabilities().containsKey("automationName")?handler.getRequest().getDesiredCapabilities().get("automationName").toString().equalsIgnoreCase("RDT"):false){
         proxies.setThrowOnCapabilityNotPresent(false);
         LOG.fine("automation RDT Found "+handler.getRequest().getDesiredCapabilities());
       }
@@ -293,7 +293,14 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
       handler.bindSession(testSession);
       return true ;
     }
-    return sessionCreated;
+    else if(sessionCreated) {
+      activeTestSessions.add(session);
+      handler.bindSession(session);
+      return sessionCreated;
+    }
+    else{
+      return false;
+    }
   }
 
   /**
