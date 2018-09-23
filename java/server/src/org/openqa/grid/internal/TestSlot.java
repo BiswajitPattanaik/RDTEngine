@@ -172,6 +172,8 @@ public class TestSlot {
    *         {@link RemoteProxy#getCapabilityHelper()}
    */
   public boolean matches(Map<String, Object> desiredCapabilities) {
+    log.fine(" Available capability on Slot "+capabilities);
+    log.fine(" Desired capability on Slot "+desiredCapabilities);
     return matcher.matches(capabilities, desiredCapabilities);
   }
 

@@ -6,6 +6,7 @@ java_library(name = 'rdt',
   deps = ['//third_party/java/okhttp3:okhttp',
           '//third_party/java/servlet:javax.servlet-api',
           '//third_party/java/gson:gson',
+          '//java/server/src/org/openqa/cavisson:cavisson',
   ],
   visibility = [
   'PUBLIC'],

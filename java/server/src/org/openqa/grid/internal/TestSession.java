@@ -292,8 +292,10 @@ public class TestSession {
     if(requestedCapabilities.containsKey("automationName")?requestedCapabilities.get("automationName").toString().equalsIgnoreCase("RDT"):false){
       log.fine(" [ RDT ] RDT Type Test Session found");
       RDTBasedRequest rdtBasedRequest = new RDTBasedRequest((HashMap<String,Object>)request.getDesiredCapabilities(),requestedCapabilities,request.getMethod(),request.getPathInfo(),newSessionRequest);
-      rdtClient = new RDTClient();
-      rdtClient.execute(rdtBasedRequest);
+      try{
+        rdtClient = new RDTClient();
+        rdtClient.execute(rdtBasedRequest);
+      }catch(Exception e){log.fine(" Error Occured "+e.getMessage());e.printStackTrace();}
       return ""; 
     }
     
@@ -308,6 +310,7 @@ public class TestSession {
       HttpRequest proxyRequest = prepareProxyRequest(request);
 
       HttpResponse proxyResponse = sendRequestToNode(proxyRequest);
+      log.fine(" ***** [ DEBUG ] *****"+proxyResponse.toString());
       lastActivity = clock.millis();
       final int statusCode = proxyResponse.getStatus();
       response.setStatus(statusCode);
@@ -475,6 +478,8 @@ public class TestSession {
       setExternalKey(key);
       return consumedData;
     }
+    log.fine(" Is Success JSON Response = "+isSuccessJsonResponse(proxyResponse)); 
+    log.fine(" Proxy Response GetContent = "+proxyResponse.getContentString()); 
     throw new GridException(
         "new session request for webdriver should contain a location header "
         + "or an 'application/json;charset=UTF-8' response body with the session ID.");

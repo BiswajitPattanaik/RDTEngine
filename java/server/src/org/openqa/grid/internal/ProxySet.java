@@ -60,6 +60,12 @@ public class ProxySet implements Iterable<RemoteProxy> {
   }
 
   public boolean hasCapability(Map<String, Object> requestedCapability) {
+    log.fine(" Inside Remote Proxy Proxy Set proxies size = "+proxies.size());
+    for (RemoteProxy p : proxies) {
+      for (TestSlot slot : p.getTestSlots()){
+        log.fine("Test Slot Capabilities are "+slot.getCapabilities());
+      }
+    } 
     return proxies.stream().anyMatch(remoteProxy -> remoteProxy.hasCapability(requestedCapability));
   }
 

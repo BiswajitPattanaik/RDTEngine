@@ -220,7 +220,8 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
     try {
       lock.lock();
       // Added By Biswajit to Design new RDT Architecture .
-      if(handler.getRequest().getDesiredCapabilities().get("automationName").toString().equalsIgnoreCase("RDT")){
+      //if(handler.getRequest().getDesiredCapabilities().get("automationName").toString().equalsIgnoreCase("RDT")){
+      if(handler.getRequest().getDesiredCapabilities().containsKey("automationName")?handler.getRequest().getDesiredCapabilities().toString().equalsIgnoreCase("RDT"):false){
         proxies.setThrowOnCapabilityNotPresent(false);
         LOG.fine("automation RDT Found "+handler.getRequest().getDesiredCapabilities());
       }
@@ -260,8 +261,8 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
   private boolean takeRequestHandler(RequestHandler handler) {
     final TestSession session = proxies.getNewSession(handler.getRequest().getDesiredCapabilities());
     //Added By Biswajit to handle sessioncreated = false when automationName != "RDT"
-    final boolean sessionCreated = (session != null || (handler.getRequest().getDesiredCapabilities().containsKey("automationName")?handler.getRequest().getDesiredCapabilities().get("automationName").equals("RDT"):false));
-    if (sessionCreated) {
+    final boolean sessionCreated = (session != null);
+    if (!sessionCreated && (handler.getRequest().getDesiredCapabilities().containsKey("automationName")?handler.getRequest().getDesiredCapabilities().get("automationName").equals("RDT"):false)) {
       RemoteProxy p1 = null;
       try{
       p1 = RemoteProxyFactory.getNewBasicRemoteProxy(new HashMap(), "http://localhost:4444", this);
@@ -286,10 +287,9 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
       }
       });
       testSession.setExternalKey(new ExternalSessionKey("testKey"));
-     
-      
       activeTestSessions.add(testSession);
       handler.bindSession(testSession);
+      return true ;
     }
     return sessionCreated;
   }
