@@ -85,7 +85,9 @@ public class RequestHandler implements Comparable<RequestHandler> {
       StringBuilder json = new StringBuilder();
       payload.writeTo(json);
       request.setBody(json.toString());
+      //log.info("Request is = "+debug());
       session.forward(getRequest(), getResponse(), true);
+      //log.info("Response is = "+new SeleniumBasedResponse(response).getForwardedContent());
     } catch (IOException e) {
       //log.warning("Error forwarding the request " + e.getMessage());
       throw new NewSessionException("Error forwarding the request " + e.getMessage(), e);
@@ -105,16 +107,16 @@ public class RequestHandler implements Comparable<RequestHandler> {
     log.info("The Request Type is ############# = "+request.getRequestType()); 
     switch (request.getRequestType()) {
       case START_SESSION:
-        log.info("Got a request to create a new session: "
-                 + new DesiredCapabilities(request.getDesiredCapabilities()));
+        log.info("Got a request to create a new session: "+ new DesiredCapabilities(request.getDesiredCapabilities()));
         try {
+        //  log.info("Got a request to create a new session before addNewSessionRequest : "+ new DesiredCapabilities(request.getDesiredCapabilities()));
           registry.addNewSessionRequest(this);
+        //  log.info("Got a request to create a new session After addNewSessionRequest and before waitForSessionBound: "+ new DesiredCapabilities(request.getDesiredCapabilities()));
           waitForSessionBound();
-          log.fine(" waitForSessionBound Done");
+        //  log.info("Got a request to create a new session After waitForSessionBound and before beforeSessionEvent : "+ new DesiredCapabilities(request.getDesiredCapabilities()));
           beforeSessionEvent();
-          log.fine(" beforeSessionEvent Done");
           forwardNewSessionRequestAndUpdateRegistry(session);
-          log.fine(" forwardNewSessionRequestAndUpdateRegistry Done");
+        //  log.info("Got a request to create a new session After forwardNewSessionRequestAndUpdateRegistry  "+ new DesiredCapabilities(request.getDesiredCapabilities()));
         } catch (Exception e) {
           cleanup();
           log.log(Level.INFO, "Error forwarding the new session " + e.getMessage(), e);
@@ -231,6 +233,7 @@ public class RequestHandler implements Comparable<RequestHandler> {
    * @return the SeleniumBasedRequest this handler is processing.
    */
   public SeleniumBasedRequest getRequest() {
+    //log.fine("Selenium Based Request to Forward Session is = "+new DesiredCapabilities(request.getDesiredCapabilities()));
     return request;
   }
 

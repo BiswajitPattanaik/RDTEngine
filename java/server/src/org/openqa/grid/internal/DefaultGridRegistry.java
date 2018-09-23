@@ -22,6 +22,7 @@ import net.jcip.annotations.ThreadSafe;
 import org.openqa.grid.internal.listeners.RegistrationListener;
 import org.openqa.grid.internal.listeners.SelfHealingProxy;
 import org.openqa.grid.internal.utils.configuration.GridHubConfiguration;
+import org.openqa.grid.internal.utils.configuration.GridNodeConfiguration;
 import org.openqa.grid.web.Hub;
 import org.openqa.grid.web.servlet.handler.RequestHandler;
 import org.openqa.selenium.remote.DesiredCapabilities;
@@ -31,6 +32,7 @@ import org.openqa.grid.common.SeleniumProtocol;
 import java.util.List;
 import java.util.Set;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -40,7 +42,7 @@ import java.util.logging.Logger;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-
+import java.util.UUID;
 
 /**
  * Kernel of the grid. Keeps track of what's happening, what's free/used and assigns resources to
@@ -270,8 +272,12 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
       p1 = RemoteProxyFactory.getNewBasicRemoteProxy(new HashMap(), "http://localhost:4444", this);
       }catch(Exception e){LOG.fine(" Exception Caunght"+e.getMessage());}
       this.add(p1);
-      TestSlot testSlot = new TestSlot(p1, SeleniumProtocol.Selenium, "", handler.getRequest().getDesiredCapabilities());
-      TestSession testSession = new TestSession(testSlot, handler.getRequest().getDesiredCapabilities(), new Clock(){
+      HashMap<String,Object> capabilities = new HashMap<String,Object>();
+      capabilities.put(GridNodeConfiguration.CONFIG_UUID_CAPABILITY,UUID.randomUUID().toString());
+      TestSlot testSlot = new TestSlot(p1, SeleniumProtocol.Selenium, "", capabilities);
+      Map<String,Object> desiredCapabilities = handler.getRequest().getDesiredCapabilities(); 
+      desiredCapabilities.put(GridNodeConfiguration.CONFIG_UUID_CAPABILITY,capabilities.get(GridNodeConfiguration.CONFIG_UUID_CAPABILITY)); 
+      TestSession testSession = new TestSession(testSlot, desiredCapabilities, new Clock(){
       private long time = 17;
       @Override
       public Instant instant() {
