@@ -138,11 +138,13 @@ public class TestSlot {
         TestSession session = new TestSession(this, desiredCapabilities, Clock.systemUTC());
         currentSession = session;
         lastSessionStart = System.currentTimeMillis();
+        log.fine(" Session created "+session); 
         return session;
       }
       return null;
     } finally {
       lock.unlock();
+      log.fine(" Lock released "); 
     }
   }
 
