@@ -110,8 +110,11 @@ public class RequestHandler implements Comparable<RequestHandler> {
         try {
           registry.addNewSessionRequest(this);
           waitForSessionBound();
+          log.fine(" waitForSessionBound Done");
           beforeSessionEvent();
+          log.fine(" beforeSessionEvent Done");
           forwardNewSessionRequestAndUpdateRegistry(session);
+          log.fine(" forwardNewSessionRequestAndUpdateRegistry Done");
         } catch (Exception e) {
           cleanup();
           log.log(Level.INFO, "Error forwarding the new session " + e.getMessage(), e);

@@ -230,6 +230,7 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
       fireMatcherStateChanged();
     } finally {
       lock.unlock();
+      LOG.fine("Add New Session lock released");
     }
 
   }
@@ -249,6 +250,7 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
             getHub().getConfiguration().prioritizer);
         // Just make sure we delete anything that is logged on this thread from memory
         LoggingManager.perSessionLogHandler().clearThreadTempLogs();
+        LOG.info("Assign Request To Proxy Done");
       } catch (InterruptedException e) {
         LOG.info("Shutting down registry.");
       } catch (Throwable t) {

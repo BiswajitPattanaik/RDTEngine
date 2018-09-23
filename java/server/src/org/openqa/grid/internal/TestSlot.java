@@ -17,14 +17,12 @@
 package org.openqa.grid.internal;
 
 import com.google.common.base.Throwables;
-
 import org.openqa.grid.common.SeleniumProtocol;
 import org.openqa.grid.common.exception.GridException;
 import org.openqa.grid.internal.listeners.TestSessionListener;
 import org.openqa.grid.internal.utils.CapabilityMatcher;
 import org.openqa.grid.internal.utils.configuration.GridHubConfiguration;
 import org.openqa.grid.internal.utils.configuration.GridNodeConfiguration;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.InvalidParameterException;
@@ -138,11 +136,13 @@ public class TestSlot {
         TestSession session = new TestSession(this, desiredCapabilities, Clock.systemUTC());
         currentSession = session;
         lastSessionStart = System.currentTimeMillis();
+        log.fine(" Session created "+session);
         return session;
       }
       return null;
     } finally {
       lock.unlock();
+      log.fine(" Lock Released ");
     }
   }
 
