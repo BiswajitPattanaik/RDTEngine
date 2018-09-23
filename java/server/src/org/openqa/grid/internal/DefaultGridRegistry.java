@@ -238,6 +238,7 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
             getHub().getConfiguration().prioritizer);
         // Just make sure we delete anything that is logged on this thread from memory
         LoggingManager.perSessionLogHandler().clearThreadTempLogs();
+        LOG.fine("Assigne Request to Proxy");
       } catch (InterruptedException e) {
         LOG.info("Shutting down registry.");
       } catch (Throwable t) {
