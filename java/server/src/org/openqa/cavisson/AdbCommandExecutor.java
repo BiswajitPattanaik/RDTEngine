@@ -258,4 +258,7 @@ public class AdbCommandExecutor{
     }
     return output.split(":")[1]; 
   }
+  public String getDeviceName(){
+    return this.deviceId;
+  }
 }

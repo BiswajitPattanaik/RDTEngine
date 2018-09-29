@@ -25,7 +25,7 @@ public class RDTBasedResponse {
   public Set<String> getHeaderNames(){
     return headers.keySet();
   }
-  public void getHeader(String headerName){
+  public String getHeader(String headerName){
     return headers.get(headerName);
   }
   public void setResponse(String response){
@@ -37,7 +37,7 @@ public class RDTBasedResponse {
   public void setStatusCode(int statusCode){
     this.statusCode = statusCode;
   }
-  public void getStatusCode(){
+  public int getStatusCode(){
     return this.statusCode;
   }
 }

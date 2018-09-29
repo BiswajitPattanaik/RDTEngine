@@ -294,7 +294,7 @@ public class DefaultGridRegistry extends BaseGridRegistry implements GridRegistr
         return this;
       }
       });
-      testSession.setExternalKey(new ExternalSessionKey("testKey"));
+      testSession.setExternalKey(new ExternalSessionKey(capabilities.get(GridNodeConfiguration.CONFIG_UUID_CAPABILITY).toString()));
       activeTestSessions.add(testSession);
       handler.bindSession(testSession);
       return true ;

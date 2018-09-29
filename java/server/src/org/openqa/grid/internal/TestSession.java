@@ -23,13 +23,15 @@ import static org.openqa.selenium.remote.http.HttpMethod.POST;
 import com.google.common.io.ByteStreams;
 import com.google.common.net.MediaType;
 
-import org.openqa.cavisson.rdt.RDTClient;
+import org.openqa.cavisson.rdt.RDTRequestHandler;
 import org.openqa.cavisson.rdt.RDTBasedRequest;
+import org.openqa.cavisson.rdt.RDTBasedResponse;
 import org.openqa.cavisson.VideoRecorder;
 import org.openqa.cavisson.NetworkLoggerHandler;
 import org.openqa.grid.common.SeleniumProtocol;
 import org.openqa.grid.common.exception.ClientGoneException;
 import org.openqa.grid.common.exception.GridException;
+import org.openqa.grid.internal.utils.configuration.GridNodeConfiguration;
 import org.openqa.grid.internal.listeners.CommandListener;
 import org.openqa.grid.web.Hub;
 import org.openqa.grid.web.servlet.handler.LegacySeleniumRequest;
@@ -102,6 +104,7 @@ public class TestSession {
   private static final Logger log = Logger.getLogger(TestSession.class.getName());
   static final int MAX_IDLE_TIME_BEFORE_CONSIDERED_ORPHANED = 5000;
 
+  private final String sessionWorkingDir;
   private final String internalKey;
   private final TestSlot slot;
   private volatile ExternalSessionKey externalKey = null;
@@ -113,7 +116,7 @@ public class TestSession {
   private final Clock clock;
   private volatile boolean forwardingRequest;
   private final int MAX_NETWORK_LATENCY = 1000;
-  private RDTClient rdtClient = null ;
+  private RDTRequestHandler rdtRequestHandler = null ;
   public String getInternalKey() {
     return internalKey;
   }
@@ -126,6 +129,7 @@ public class TestSession {
         Map<String, Object> requestedCapabilities,
         Clock clock) {
       internalKey = UUID.randomUUID().toString();
+      sessionWorkingDir = requestedCapabilities.containsKey(GridNodeConfiguration.CONFIG_UUID_CAPABILITY)?requestedCapabilities.get(GridNodeConfiguration.CONFIG_UUID_CAPABILITY).toString():internalKey;
       this.slot = slot;
       this.requestedCapabilities = requestedCapabilities;
       this.clock = clock;
@@ -290,77 +294,62 @@ public class TestSession {
     HashMap<String,Object> requestedCapabilities = (HashMap<String,Object>)getRequestedCapabilities();
     log.fine("Requested capabilities for Test Session is "+requestedCapabilities);
     if(requestedCapabilities.containsKey("automationName")?requestedCapabilities.get("automationName").toString().equalsIgnoreCase("RDT"):false){
+      String requestBody = "";
       log.fine(" [ RDT ] RDT Type Test Session found");
       if ("POST".equalsIgnoreCase(request.getMethod())) {
         Scanner s = new Scanner(request.getInputStream(), "UTF-8").useDelimiter("\\A");
-        String requestBody = s.hasNext() ? s.next() : "";
+        requestBody = s.hasNext() ? s.next() : "";
         log.fine(requestBody);
       }
         
-      RDTBasedRequest rdtBasedRequest = new RDTBasedRequest((HashMap<String,Object>)request.getDesiredCapabilities(),requestedCapabilities,request.getMethod(),request.getPathInfo(),newSessionRequest);
+      RDTBasedRequest rdtBasedRequest = new RDTBasedRequest((HashMap<String,Object>)request.getDesiredCapabilities(),requestedCapabilities,request.getMethod(),request.getPathInfo(),newSessionRequest,requestBody);
+      HttpResponse rdtResponse = null;
       try{
-        rdtClient = new RDTClient();
-        rdtClient.execute(rdtBasedRequest);
+        rdtRequestHandler = new RDTRequestHandler();
+        rdtResponse = rdtBasedToHttpResponse(rdtRequestHandler.execute(rdtBasedRequest));
+        //#TO:DO Need to implement loggin before and after command  
       }catch(Exception e){log.fine(" Error Occured "+e.getMessage());e.printStackTrace();}
-      return ""; 
-    }
-    
-    try {
-      if (slot.getProxy() instanceof CommandListener) {
-        log.fine(" [Important] Check Proxy = "+slot.getProxy());
-        ((CommandListener) slot.getProxy()).beforeCommand(this, request, response);
-      }
-      
       lastActivity = clock.millis();
-
-      HttpRequest proxyRequest = prepareProxyRequest(request);
-
-      HttpResponse proxyResponse = sendRequestToNode(proxyRequest);
-      log.fine(" ***** [ DEBUG ] *****"+proxyResponse.getContentString());
-      log.fine(" ***** [ DEBUG ] *****"+proxyResponse.getContentString().length());
-      for (String headerName : proxyResponse.getHeaderNames()){
-        log.fine(" ***** [ DEBUG ] *****" + headerName + " : "+proxyResponse.getHeader(headerName));
-      }
-      lastActivity = clock.millis();
-      final int statusCode = proxyResponse.getStatus();
-      response.setStatus(statusCode);
-      processResponseHeaders(request, response, slot.getRemoteURL(), proxyResponse);
-
+      final int statusCode = rdtResponse.getStatus();
+      processResponseHeaders(request, response, slot.getRemoteURL(), rdtResponse);
       byte[] consumedNewWebDriverSessionBody = null;
       if (statusCode != HttpServletResponse.SC_INTERNAL_SERVER_ERROR &&
           statusCode != HttpServletResponse.SC_NOT_FOUND &&
           statusCode != HttpServletResponse.SC_BAD_REQUEST &&
           statusCode != HttpServletResponse.SC_UNAUTHORIZED) {
-        consumedNewWebDriverSessionBody = updateHubIfNewWebDriverSession(request, proxyResponse);
+        consumedNewWebDriverSessionBody = updateHubIfNewWebDriverSession(request, rdtResponse);
+        log.fine(" [ DEBUG ] RDT Passed ");
       }
       if (newSessionRequest &&
-          (statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR ||
-          statusCode == HttpServletResponse.SC_BAD_REQUEST ||
-          statusCode == HttpServletResponse.SC_UNAUTHORIZED)) {
-        removeIncompleteNewSessionRequest();
+           (statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR ||
+            statusCode == HttpServletResponse.SC_BAD_REQUEST ||
+            statusCode == HttpServletResponse.SC_UNAUTHORIZED)) {
+          removeIncompleteNewSessionRequest();
+        log.fine(" [ DEBUG ] RDT Failed ");
       }
 
       consumedNewWebDriverSessionBody = closeSessionIfNecessary(
-          consumedNewWebDriverSessionBody,
-          request,
-          proxyResponse);
+            consumedNewWebDriverSessionBody,
+            request,
+            rdtResponse);
 
       byte[] contentBeingForwarded = null;
-      if (proxyResponse.getContentString() != null) {
-        contentBeingForwarded = proxyResponse.getContent();
+      if (rdtResponse.getContentString() != null) {
+        contentBeingForwarded = rdtResponse.getContent();
         if (consumedNewWebDriverSessionBody == null) {
           if (request.getRequestType() == RequestType.START_SESSION && request instanceof LegacySeleniumRequest) {
-            res = proxyResponse.getContentString();
+            log.fine(" consumedNewWebDriverSessionBody found to be null , response having content , RequestType start session ");
+            res = rdtResponse.getContentString();
 
             updateHubNewSeleniumSession(res);
 
             contentBeingForwarded = res.getBytes("UTF-8");
           }
-        } else {
-          contentBeingForwarded = consumedNewWebDriverSessionBody;
+        } 
+        else {
+        contentBeingForwarded = consumedNewWebDriverSessionBody;
         }
       }
-
       if (slot.getProxy() instanceof CommandListener) {
         SeleniumBasedResponse wrappedResponse = new SeleniumBasedResponse(response);
         wrappedResponse.setForwardedContent(contentBeingForwarded);
@@ -374,10 +363,87 @@ public class TestSession {
       response.flushBuffer();
       response.flushBuffer();
 
-      return res;
-    } finally {
-      forwardingRequest = false;
-      Thread.currentThread().setName(currentThreadName);
+      return res; 
+    }
+
+//## Separating Control flow for RDTBased session and Non Rdt based session 
+    else{ 
+      try {
+        if (slot.getProxy() instanceof CommandListener) {
+          log.fine(" [Important] Check Proxy = "+slot.getProxy());
+          ((CommandListener) slot.getProxy()).beforeCommand(this, request, response);
+        }
+      
+        lastActivity = clock.millis();
+
+        HttpRequest proxyRequest = prepareProxyRequest(request);
+
+        HttpResponse proxyResponse = sendRequestToNode(proxyRequest);
+        log.fine(" ***** [ DEBUG ] *****"+proxyResponse.getTargetHost());
+        log.fine(" ***** [ DEBUG ] *****"+proxyResponse.getContentString());
+        log.fine(" ***** [ DEBUG ] *****"+proxyResponse.getContentString().length());
+        for (String headerName : proxyResponse.getHeaderNames()){
+          log.fine(" ***** [ DEBUG ] *****" + headerName + " : "+proxyResponse.getHeader(headerName));
+        }
+        lastActivity = clock.millis();
+        final int statusCode = proxyResponse.getStatus();
+        response.setStatus(statusCode);
+        processResponseHeaders(request, response, slot.getRemoteURL(), proxyResponse);
+
+        byte[] consumedNewWebDriverSessionBody = null;
+        if (statusCode != HttpServletResponse.SC_INTERNAL_SERVER_ERROR &&
+            statusCode != HttpServletResponse.SC_NOT_FOUND &&
+            statusCode != HttpServletResponse.SC_BAD_REQUEST &&
+            statusCode != HttpServletResponse.SC_UNAUTHORIZED) {
+          consumedNewWebDriverSessionBody = updateHubIfNewWebDriverSession(request, proxyResponse);
+        }
+        if (newSessionRequest &&
+            (statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR ||
+            statusCode == HttpServletResponse.SC_BAD_REQUEST ||
+            statusCode == HttpServletResponse.SC_UNAUTHORIZED)) {
+          removeIncompleteNewSessionRequest();
+        }
+
+        consumedNewWebDriverSessionBody = closeSessionIfNecessary(
+            consumedNewWebDriverSessionBody,
+            request,
+            proxyResponse);
+
+        byte[] contentBeingForwarded = null;
+        if (proxyResponse.getContentString() != null) {
+          contentBeingForwarded = proxyResponse.getContent();
+          if (consumedNewWebDriverSessionBody == null) {
+            if (request.getRequestType() == RequestType.START_SESSION && request instanceof LegacySeleniumRequest) {
+              res = proxyResponse.getContentString();
+
+              updateHubNewSeleniumSession(res);
+
+              contentBeingForwarded = res.getBytes("UTF-8");
+            }
+          } 
+          else {
+          contentBeingForwarded = consumedNewWebDriverSessionBody;
+          }
+        }
+
+        if (slot.getProxy() instanceof CommandListener) {
+          SeleniumBasedResponse wrappedResponse = new SeleniumBasedResponse(response);
+          wrappedResponse.setForwardedContent(contentBeingForwarded);
+          ((CommandListener) slot.getProxy()).afterCommand(this, request, wrappedResponse);
+          contentBeingForwarded = wrappedResponse.getForwardedContentAsByteArray();
+        }
+
+        if (contentBeingForwarded != null) {
+          writeRawBody(response, contentBeingForwarded);
+        }
+        response.flushBuffer();
+        response.flushBuffer();
+
+        return res;
+      } finally {
+        forwardingRequest = false;
+        Thread.currentThread().setName(currentThreadName);
+      }
     }
   }
 
@@ -750,7 +816,7 @@ public class TestSession {
     return workingDir.getAbsolutePath();
   }
   public void createSessionWorkingDir(String workingDirPath)throws Exception{
-    String sessionWorkingDirectory = workingDirPath+"/"+internalKey;
+    String sessionWorkingDirectory = workingDirPath+"/"+sessionWorkingDir;
     File sessionWorkingDir = new File(sessionWorkingDirectory);
     if (!sessionWorkingDir.exists()){
     boolean result = sessionWorkingDir.mkdir();
@@ -781,5 +847,14 @@ public class TestSession {
     map = (Map<String,Object>) gson.fromJson(requestBody, map.getClass());
     log.fine(map.toString());
     networkLoggerHandler.process(map,response);   
+  }
+  private HttpResponse rdtBasedToHttpResponse(RDTBasedResponse rdtBasedResponse){
+    HttpResponse response = new HttpResponse();
+    response.setContent(rdtBasedResponse.getResponse().getBytes());
+    response.setStatus(rdtBasedResponse.getStatusCode());
+    for (String key : rdtBasedResponse.getHeaderNames()){
+      response.setHeader(key,rdtBasedResponse.getHeader(key));
+    }
+    return response;
   }
  }
