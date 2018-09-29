@@ -12,14 +12,33 @@ public class RDTClient{
   }
   public void execute(RDTBasedRequest rdtBasedRequest){
     try{
-      log.fine(" desired capabilities "+ rdtBasedRequest.getDesiredCapabilities() + " Extra Capabilities " +rdtBasedRequest.getExtraCapabilities() + " Method " +rdtBasedRequest.getMethod() + "Request Path" +rdtBasedRequest.getRequestPath() + " New SessionRequest " +rdtBasedRequest.getNewSessionrequest());
-      log.fine(" Release Version = "+adbCommandExecutor.getReleaseVersion()); 
-      log.fine(" SDK Version  = "+adbCommandExecutor.getBuildVersion()); 
-      log.fine(" Manufacturer  = "+adbCommandExecutor.getManufacturer()); 
-      log.fine(" WindowSize = "+adbCommandExecutor.getWindowSize()); 
-      log.fine(" Model = "+adbCommandExecutor.getModel());
-      log.fine(" Is Package Available on Device "+adbCommandExecutor.isPackageAvailableOnDevice(rdtBasedRequest.getDesiredCapabilities().get("appPackage").toString())); 
-      log.fine(" Starting the package on Device "+adbCommandExecutor.launchApplicationByPackageName(rdtBasedRequest.getDesiredCapabilities().get("appPackage").toString(),rdtBasedRequest.getDesiredCapabilities().get("appActivity").toString())); 
+      Map<String,Object> desiredCapabilities = rdtBasedRequest.getDesiredCapabilities();
+      Map<String,Object> extraCapabilities = rdtBasedRequest.getExtraCapabilities();
+      String method = rdtBasedRequest.getMethod();
+      String requestPath = rdtBasedRequest.getRequestPath();
+      boolean newSessionRequest = rdtBasedRequest.getNewSessionrequest(); 
+      log.fine(" desired capabilities "+ desiredCapabilities + " Extra Capabilities " + extraCapabilities  + " Method " + method  + "Request Path" + requestPath  + " New SessionRequest " + newSessionRequest );
+      String releaseVersion = adbCommandExecutor.getReleaseVersion();
+      String buildVersion = adbCommandExecutor.getBuildVersion();
+      String manufacturer = adbCommandExecutor.getManufacturer();
+      String model = adbCommandExecutor.getModel();
+      String windowSize = adbCommandExecutor.getWindowSize();
+      String platform = rdtBasedRequest.getDesiredCapabilities().containsKey("platform")?;
+      
+      boolean isPackageAvailable = adbCommandExecutor.isPackageAvailableOnDevice(rdtBasedRequest.getDesiredCapabilities().get("appPackage").toString());
+      boolean launchApplicationByName = adbCommandExecutor.launchApplicationByPackageName(rdtBasedRequest.getDesiredCapabilities().get("appPackage").toString(),rdtBasedRequest.getDesiredCapabilities().get("appActivity").toString()); 
+      log.fine(" Release Version = " + releaseVersion); 
+      log.fine(" SDK Version  = " + buildVersion); 
+      log.fine(" Manufacturer  = " + manufacturer); 
+      log.fine(" WindowSize = " + model); 
+      log.fine(" Model = " + windowSize);
+      log.fine(" Is Package Available on Device " + isPackageAvailable); 
+      log.fine(" Starting the package on Device " + launchApplicationByName);
+      Gson gson = new Gson();
+      JsonObject jsonObject = new JsonObject();
+      jsonObject.addProperty("platform",)      
+            
+ 
     }catch(Exception e){log.fine(" Exception Caught "+e.getMessage());}
   }
 
