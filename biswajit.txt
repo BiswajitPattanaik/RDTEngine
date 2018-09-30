@@ -1,0 +1,56 @@
+buck-out/gen/java/server/src/org/openqa/grid/selenium
+
+
+
+at org.openqa.selenium.remote.http.AbstractHttpCommandCodec.encode(AbstractHttpCommandCodec.java:222)
+	at org.openqa.selenium.remote.http.AbstractHttpCommandCodec.encode(AbstractHttpCommandCodec.java:118)
+	at org.openqa.selenium.remote.HttpCommandExecutor.execute(HttpCommandExecutor.java:152)
+	at org.openqa.selenium.remote.RemoteWebDriver.execute(RemoteWebDriver.java:548)
+	at org.openqa.selenium.remote.RemoteExecuteMethod.execute(RemoteExecuteMethod.java:35)
+
+
+
+74
+down vote
+accepted
+Just use JSONObject.toString(); method. And have a look at OkHttp's tutorial:
+
+public static final MediaType JSON
+    = MediaType.parse("application/json; charset=utf-8");
+
+OkHttpClient client = new OkHttpClient();
+
+String post(String url, String json) throws IOException {
+  RequestBody body = RequestBody.create(JSON, json);
+  Request request = new Request.Builder()
+      .url(url)
+      .post(body)
+      .build();
+  Response response = client.newCall(request).execute();
+  return response.body().string();
+}
+
+
+
+
+
+public Object jsGet_body() {
+    ByteArrayOutputStream body = javaContext.getBodyStream();
+    if (body == null) {
+        return Context.getUndefinedValue();
+    }
+    final Scriptable buffer = cx.newObject(scope, "Uint8Array");
+    try {
+        body.writeTo(new OutputStream() {
+            int count = 0;
+
+            @Override
+            public void write(int b) throws IOException {
+                buffer.put(count++, buffer, b);
+            }
+        });
+    } catch (Exception e) {
+        return e;
+    }
+    return buffer;
+}
