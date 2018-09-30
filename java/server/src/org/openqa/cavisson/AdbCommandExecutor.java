@@ -7,8 +7,10 @@ public class AdbCommandExecutor{
   private String adbExecutorPath = null;
   private String adbExecutorRelativePath = ABD_SDK_RELATIVE_PATH;
   private String deviceId = null;
+  private ThreadGroup logger; 
   public final String ANDROID_PING_COMMAND = " shell echo ping";
   public final String ANDROID_LAUNCH_APP_COMMAND = " shell am start -W -n ";
+  public final String ANDROI_STOP_APP_COMMAND = " shell am force-stop ";
   public final String TCP_FORWARD_COMMAND = " forward ";
   public final String ANDROID_LIST_PACKAGE_COMMAND = " shell pm list packages ";
   public final String ANDROID_GET_PROPERTIES_COMMAND =  " shell getprop ";
@@ -18,12 +20,16 @@ public class AdbCommandExecutor{
   public final String RO_PRODUCT_MODEL = "ro.product.model" ;
   public final String ANDROID_PACKAGE_LIST_COMMAND = " shell pm list packages ";
   public final String ANDROID_WINDOW_SIZE = " shell wm size";
+  public final String ANDROID_BOOTSTRAP_COMMAND = " shell uiautomator runtest AppiumBootstrap.jar -c io.appium.android.bootstrap.Bootstrap -e pkg %s -e disableAndroidWatchers false -e acceptSslCerts false";
+  public final String ANDROID_BOOTSTRAP_GREP = " shell ps | grep uiautomator";
   //Constructor for "AdbCommandExecutor" Class
+
   private static final Logger log = Logger.getLogger(AdbCommandExecutor.class.getName());
 
   public AdbCommandExecutor()throws Exception{
     this.adbExecutorPath = getAdbExecutorPath();
     this.deviceId = getDeviceId();
+    initiateUiAutiomatorLogger();
   }
   
 
@@ -31,8 +37,16 @@ public class AdbCommandExecutor{
   public AdbCommandExecutor(String deviceId)throws Exception{
     this.adbExecutorPath = getAdbExecutorPath();
     this.deviceId = deviceId;
+    initiateUiAutiomatorLogger();
   } 
-
+  
+  public void initiateUiAutiomatorLogger(){
+    logger = new ThreadGroup("UiAutomatorLogger");
+  }
+  public void stopUiAutiomatorLogger()throws Exception{
+    log.fine(" [ AutiomatorLogger ] Request To Stop Logger");
+    logger.stop();
+  }
   //Run Command and get Command Output
   public String runCommandOutput(String cmd)throws Exception{
     Process p = Runtime.getRuntime().exec(adbExecutorPath + " -s " + deviceId + " " + cmd);
@@ -107,6 +121,8 @@ public class AdbCommandExecutor{
       output = output+"\n"+line;
       if (line.contains("Status")){
         if(line.split(":")[1].substring(1).equalsIgnoreCase("ok")){
+          log.fine(" [ launchApplicationByPackageName ] Starting AppiumBootstrap");
+          startUiAutimator(packageName);
           return true;
         }
       }
@@ -115,7 +131,15 @@ public class AdbCommandExecutor{
     return false; 
  
   }
-
+  public  boolean stopApplicationByPackageName(String packageName)throws Exception{
+    Process p = Runtime.getRuntime().exec(adbExecutorPath + " -s " + deviceId + ANDROI_STOP_APP_COMMAND + packageName);
+    p.waitFor();
+    if(p.exitValue()!=0){
+      throw new RDTException("Error in Running RDT Command on Device ");
+    }
+    log.fine(" [ stopApplicationByPackageName ] Application Stopped ");
+    return true; 
+  }
   //GetExecutorPath for Adb 
   private String getAdbExecutorPath()throws RDTException,Exception{
     String AndroidHome = System.getenv("ANDROID_HOME");
@@ -258,7 +282,59 @@ public class AdbCommandExecutor{
     }
     return output.split(":")[1]; 
   }
+  public void startUiAutimator(String packageName)throws Exception{
+    Process p = Runtime.getRuntime().exec(adbExecutorPath + " -s " + deviceId + String.format(ANDROID_BOOTSTRAP_COMMAND,packageName));
+    UiAutomatorLogger stdOutLogger = new UiAutomatorLogger(p.getInputStream()); 
+    UiAutomatorLogger stdErrLogger = new UiAutomatorLogger(p.getErrorStream());
+    log.info(" [UiAutomatorLogger] UiAutomator Initiated "); 
+    Thread stdOutThread = new Thread(logger,stdOutLogger);
+    Thread stdErrThread = new Thread(logger,stdErrLogger);
+    stdOutThread.start();
+    stdErrThread.start(); 
+  }
   public String getDeviceName(){
     return this.deviceId;
+  }
+  private final class UiAutomatorLogger extends Thread{
+    private InputStream inputStream = null ;
+    public UiAutomatorLogger(InputStream inputStream){
+      this.inputStream = inputStream;
+    }
+    public void run(){
+      if (inputStream != null){
+        try{
+          BufferedReader stdInput = new BufferedReader(new InputStreamReader(inputStream));
+          String s = null;
+          while ((s = stdInput.readLine()) != null) {
+            log.info(s);
+          }
+        }catch(Exception e){log.fine(" [UiAutomatorLogger] Some issue with UIAutomatorLogger ");e.printStackTrace();} 
+      }
+    }
+  }
+  public String stopUiAutomator()throws Exception{
+    Runtime re = Runtime.getRuntime();
+    Process p = re.exec(adbExecutorPath + " -s " + deviceId + ANDROID_BOOTSTRAP_GREP);
+    p.waitFor();
+    BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
+    String result=null;
+    String tmp=null;
+    int resultCount = 0;
+    while ((tmp = stdInput.readLine()) != null) {
+      result = tmp;
+      resultCount++;
+    }
+    if(resultCount != 1){
+      throw new RDTException("Multiple UiAutomator Process encountered ,Not sure which one to kill. ");  
+    }
+    if(result != null){
+      //log.fine(" [ stopUiAutomator ] SuccesFully killed UiAutomator "+result+" "+result.trim().replaceAll(" +", " ").split(" ")[1]);
+      p = re.exec(adbExecutorPath + " -s " + deviceId + " shell kill "+result.trim().replaceAll(" +", " ").split(" ")[1]);
+      p.waitFor(); 
+    }
+    if(p.exitValue()==0){
+      log.fine(" [ stopUiAutomator ] SuccesFully killed UiAutomator");
+    }
+    return "";
   }
 }

@@ -117,6 +117,7 @@ public class TestSession {
   private volatile boolean forwardingRequest;
   private final int MAX_NETWORK_LATENCY = 1000;
   private RDTRequestHandler rdtRequestHandler = null ;
+  private boolean RDTTypeSession = false;
   public String getInternalKey() {
     return internalKey;
   }
@@ -135,6 +136,10 @@ public class TestSession {
       this.clock = clock;
       lastActivity = this.clock.millis();
       try{
+        RDTTypeSession = requestedCapabilities.containsKey("automationName")?requestedCapabilities.get("automationName").toString().equalsIgnoreCase("RDT"):false; 
+        if(RDTTypeSession){
+          rdtRequestHandler = new RDTRequestHandler();
+        }
         currentWorkingDir=createWorkingDir();
         videoRecorder = new VideoRecorder(currentWorkingDir,internalKey,null);
         networkLoggerHandler = new NetworkLoggerHandler(8099);
@@ -293,7 +298,7 @@ public class TestSession {
     forwardingRequest = true;
     HashMap<String,Object> requestedCapabilities = (HashMap<String,Object>)getRequestedCapabilities();
     log.fine("Requested capabilities for Test Session is "+requestedCapabilities);
-    if(requestedCapabilities.containsKey("automationName")?requestedCapabilities.get("automationName").toString().equalsIgnoreCase("RDT"):false){
+    if(RDTTypeSession){
       String requestBody = "";
       log.fine(" [ RDT ] RDT Type Test Session found");
       if ("POST".equalsIgnoreCase(request.getMethod())) {
@@ -305,7 +310,6 @@ public class TestSession {
       RDTBasedRequest rdtBasedRequest = new RDTBasedRequest((HashMap<String,Object>)request.getDesiredCapabilities(),requestedCapabilities,request.getMethod(),request.getPathInfo(),newSessionRequest,requestBody);
       HttpResponse rdtResponse = null;
       try{
-        rdtRequestHandler = new RDTRequestHandler();
         rdtResponse = rdtBasedToHttpResponse(rdtRequestHandler.execute(rdtBasedRequest));
         //#TO:DO Need to implement loggin before and after command  
       }catch(Exception e){log.fine(" Error Occured "+e.getMessage());e.printStackTrace();}

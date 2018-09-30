@@ -34,6 +34,8 @@ public class RDTClient{
   private final String RDT_SESSION_ID = "sessionId"; 
   private Gson gson ;
   private JsonParser jsonParser ;
+  private String sessionKey ;
+  private String packageName;
   private Map<String,Object> desiredCapabilities ;
   private Map<String,Object> extraCapabilities ;
   public RDTClient()throws Exception{
@@ -54,6 +56,7 @@ public class RDTClient{
       String requestPath = rdtBasedRequest.getRequestPath();
       boolean newSessionRequest = rdtBasedRequest.getNewSessionrequest(); 
       log.fine(" desired capabilities "+ desiredCapabilities + " Extra Capabilities " + extraCapabilities  + " Method " + method  + "Request Path" + requestPath  + " New SessionRequest " + newSessionRequest );
+      packageName = desiredCapabilities.get(APP_PACKAGE).toString();
       String releaseVersion = adbCommandExecutor.getReleaseVersion();
       String buildVersion = adbCommandExecutor.getBuildVersion();
       String manufacturer = adbCommandExecutor.getManufacturer();
@@ -61,9 +64,12 @@ public class RDTClient{
       String windowSize = adbCommandExecutor.getWindowSize();
       String platform = desiredCapabilities.containsKey("platform")?desiredCapabilities.get("platform").toString():"";
       String deviceName = adbCommandExecutor.getDeviceName();      
-      boolean isPackageAvailable = adbCommandExecutor.isPackageAvailableOnDevice(desiredCapabilities.get(APP_PACKAGE).toString());
-      boolean launchApplicationByName = adbCommandExecutor.launchApplicationByPackageName(desiredCapabilities.get(APP_PACKAGE).toString(),desiredCapabilities.get(APP_ACTIVITY).toString()); 
+      boolean isPackageAvailable = adbCommandExecutor.isPackageAvailableOnDevice(packageName);
+      boolean launchApplicationByName = adbCommandExecutor.launchApplicationByPackageName(packageName,desiredCapabilities.get(APP_ACTIVITY).toString()); 
+      //Save Session ID for future Use
+      sessionKey = desiredCapabilities.get(JSON_SESSION_ID_KEY).toString(); 
       log.fine(" Release Version = " + releaseVersion+ " SDK Version  = " + buildVersion + " Manufacturer  = " + manufacturer +" Model = " + model+" Window Size = " + windowSize+" Is Package Available on Device =" + isPackageAvailable+" Starting the package on Device =" + launchApplicationByName); 
+      //Create response for session success 
       JsonObject jsonObject = new JsonObject();
       JsonObject jsonValue = new JsonObject();
       JsonObject desiredJsonCapability =(JsonObject)jsonParser.parse(gson.toJson(rdtBasedRequest.getDesiredCapabilities()));
@@ -88,6 +94,7 @@ public class RDTClient{
       jsonCapability.addProperty(PLATFORM_VERSION,releaseVersion);
       jsonValue.add("capabilities",(JsonElement)jsonCapability);
       jsonValue.addProperty("sessionId",desiredCapabilities.get(JSON_SESSION_ID_KEY).toString());
+      
       jsonObject.add("value",(JsonElement)jsonValue);
       log.fine(jsonObject.toString());
       return jsonObject.toString();
@@ -99,8 +106,26 @@ public class RDTClient{
       return createSession(rdtBasedRequest);      
     }
     else{
+      String method = rdtBasedRequest.getMethod();
+      String requestPath = rdtBasedRequest.getRequestPath();
+      boolean newSessionRequest = rdtBasedRequest.getNewSessionrequest(); 
+      log.fine(" ********desired capabilities "+ desiredCapabilities + " Extra Capabilities " + extraCapabilities  + " Method " + method  + "Request Path" + requestPath  + " New SessionRequest " + newSessionRequest );
+      if (method.equals("DELETE")){
+        log.fine("Received request to delete session i.e DELETE Request "+requestPath.split("/")[2]+" "+sessionKey);
+        if(requestPath.split("/")[2].equals(sessionKey)){
+          log.fine("Received request to delete session "+sessionKey);
+          return quit();
+        }
+      }
       return "";
     }
   }
-
+  public String quit(){
+    try{
+      adbCommandExecutor.stopUiAutiomatorLogger();
+      adbCommandExecutor.stopUiAutomator();
+      adbCommandExecutor.stopApplicationByPackageName(packageName);
+    }catch(Exception e){log.fine(" Exception Caught "+e.getMessage());return "";}
+    return ""; 
+  }
 }
