@@ -321,6 +321,7 @@ public class RemoteWebDriver implements WebDriver, JavascriptExecutor,
 
     Response response = execute(DriverCommand.FIND_ELEMENT,
         ImmutableMap.of("using", by, "value", using));
+    
     Object value = response.getValue();
     WebElement element;
     try {
@@ -548,7 +549,7 @@ public class RemoteWebDriver implements WebDriver, JavascriptExecutor,
     try {
       log(sessionId, command.getName(), command, When.BEFORE);
       response = executor.execute(command);
-      //System.out.println("response ="+response.getValue());
+      System.out.println("response ="+response.getValue());
       log(sessionId, command.getName(), command, When.AFTER);
 
       if (response == null) {

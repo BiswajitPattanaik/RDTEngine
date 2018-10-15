@@ -43,6 +43,7 @@ public class JsonToWebElementConverter implements Function<Object, Object> {
   }
 
   public Object apply(Object result) {
+    //System.out.println(result.toString());
     if (result instanceof Collection<?>) {
       Collection<?> results = (Collection<?>) result;
       return Lists.newArrayList(Iterables.transform(results, this));
@@ -53,6 +54,7 @@ public class JsonToWebElementConverter implements Function<Object, Object> {
       String elementKey = getElementKey(resultAsMap);
 		  if (null != elementKey) {
 			  RemoteWebElement element = newRemoteWebElement();
+			  System.out.println("Called new RemoteWebElement ");
 			  element.setId(String.valueOf(resultAsMap.get(elementKey)));
 			  return element;
       } else {
@@ -61,13 +63,16 @@ public class JsonToWebElementConverter implements Function<Object, Object> {
     }
 
     if (result instanceof RemoteWebElement) {
+      System.out.println(" result is instance of remoteWebElement  ");
       return setOwner((RemoteWebElement) result);
     }
 
     if (result instanceof Number) {
       if (result instanceof Float || result instanceof Double) {
+        System.out.println(" result is instance of Number Float Double ");
         return ((Number) result).doubleValue();
       }
+      System.out.println(" result is instance of Number ");
       return ((Number) result).longValue();
     }
 

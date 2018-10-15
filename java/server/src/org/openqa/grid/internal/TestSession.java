@@ -315,6 +315,11 @@ public class TestSession {
       }catch(Exception e){log.fine(" Error Occured "+e.getMessage());e.printStackTrace();}
       lastActivity = clock.millis();
       final int statusCode = rdtResponse.getStatus();
+      log.fine(" ***** [ DEBUG ] *****"+rdtResponse.getContentString());
+      log.fine(" ***** [ DEBUG ] *****"+rdtResponse.getContentString().length());
+      for (String headerName : rdtResponse.getHeaderNames()){
+        log.fine(" ***** [ DEBUG ] *****" + headerName + " : "+rdtResponse.getHeader(headerName));
+      }
       processResponseHeaders(request, response, slot.getRemoteURL(), rdtResponse);
       byte[] consumedNewWebDriverSessionBody = null;
       if (statusCode != HttpServletResponse.SC_INTERNAL_SERVER_ERROR &&
@@ -322,7 +327,7 @@ public class TestSession {
           statusCode != HttpServletResponse.SC_BAD_REQUEST &&
           statusCode != HttpServletResponse.SC_UNAUTHORIZED) {
         consumedNewWebDriverSessionBody = updateHubIfNewWebDriverSession(request, rdtResponse);
-        log.fine(" [ DEBUG ] RDT Passed ");
+        log.fine(" [ DEBUG ] RDT Passed "+rdtResponse.getContentString());
       }
       if (newSessionRequest &&
            (statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR ||
@@ -340,6 +345,7 @@ public class TestSession {
       byte[] contentBeingForwarded = null;
       if (rdtResponse.getContentString() != null) {
         contentBeingForwarded = rdtResponse.getContent();
+        log.fine(" Content being forwarded = "+contentBeingForwarded + " " + consumedNewWebDriverSessionBody);
         if (consumedNewWebDriverSessionBody == null) {
           if (request.getRequestType() == RequestType.START_SESSION && request instanceof LegacySeleniumRequest) {
             log.fine(" consumedNewWebDriverSessionBody found to be null , response having content , RequestType start session ");
@@ -366,7 +372,7 @@ public class TestSession {
       }
       response.flushBuffer();
       response.flushBuffer();
-
+      log.fine(res);
       return res; 
     }
 

@@ -59,8 +59,7 @@ public class RDTClient{
     adbCommandExecutor.tcpForward(4724,4724);
     gson = new Gson();
     jsonParser = new JsonParser();
-    socket=new Socket("localhost",4724);
-    socket.setKeepAlive(true);
+    
   }
   public String createSession(RDTBasedRequest rdtBasedRequest){
     try{
@@ -107,10 +106,10 @@ public class RDTClient{
       jsonCapability.addProperty(DEVICE_MODEL,model);
       jsonCapability.addProperty(DEVICE_MANUFACTURER,manufacturer);
       jsonCapability.addProperty(PLATFORM_VERSION,releaseVersion);
-      jsonValue.add("capabilities",(JsonElement)jsonCapability);
-      jsonValue.addProperty("sessionId",desiredCapabilities.get(JSON_SESSION_ID_KEY).toString());
-      
-      jsonObject.add("value",(JsonElement)jsonValue);
+      //jsonValue.add("capabilities",(JsonElement)jsonCapability);
+      jsonObject.addProperty("sessionId",desiredCapabilities.get(JSON_SESSION_ID_KEY).toString());
+      jsonObject.addProperty("status",0);
+      jsonObject.add("value",(JsonElement)jsonCapability);
       log.fine(jsonObject.toString());
       return jsonObject.toString();
     }catch(Exception e){log.fine(" Exception Caught "+e.getMessage());return "";}
@@ -137,6 +136,16 @@ public class RDTClient{
         if(requestPath.endsWith("element")){
           if(requestPath.split("/")[2].equals(sessionKey)){
             return findElement(requestBody);
+          }
+        }
+        else if(requestPath.endsWith("click")){
+          if(requestPath.split("/")[2].equals(sessionKey)){
+            return clickElement(requestBody);
+          }
+        }
+        else if(requestPath.endsWith("value")){
+          if(requestPath.split("/")[2].equals(sessionKey)){
+            return sendKeyToElement(requestBody);
           }
         }
       }
@@ -181,25 +190,78 @@ public class RDTClient{
     params.addProperty("strategy",strategy);
     params.addProperty("selector",selector);
     params.addProperty("context","");
-    params.addProperty("multiple",true);
+    params.addProperty("multiple",false);
     jsonRequest.add("params",(JsonElement)params);
     log.fine(" Json Request = "+jsonRequest.toString());
     String output = sendDataToBootstrap(jsonRequest.toString());
+    JsonObject outputJson = (JsonObject)jsonParser.parse(output);
+    outputJson.addProperty("sessionId",desiredCapabilities.get(JSON_SESSION_ID_KEY).toString());
+    output = outputJson.toString();
+    log.fine(" Json Response = "+output);
+    return output;
+  }
+  public String sendKeyToElement(String requestBody){
+    log.fine(" Element Click Requested ");
+    JsonObject elementJson = (JsonObject)jsonParser.parse(requestBody.replaceAll("(\n|\t)",""));
+    String elementId = elementJson.get("id").getAsString();
+    String text = elementJson.getAsJsonArray("value").get(0).getAsString();
+    JsonObject jsonRequest = new JsonObject();
+    jsonRequest.addProperty("cmd","action");
+    jsonRequest.addProperty("action","element:setText");
+    JsonObject params = new JsonObject();
+    params.addProperty("elementId",elementId);
+    params.addProperty("text",text);
+    params.addProperty("replace",false);
+    jsonRequest.add("params",(JsonElement)params);
+    log.fine(" Json Request = "+jsonRequest.toString());
+    String output = sendDataToBootstrap(jsonRequest.toString());
+    JsonObject outputJson = (JsonObject)jsonParser.parse(output);
+    outputJson.addProperty("sessionId",desiredCapabilities.get(JSON_SESSION_ID_KEY).toString());
+    output = outputJson.toString();
+    log.fine(" Json Response = "+output);
+    return output;
+  }
+  public String clickElement(String requestBody){
+    log.fine(" Element Click Requested ");
+    JsonObject elementJson = (JsonObject)jsonParser.parse(requestBody.replaceAll("(\n|\t)",""));
+    String elementId = elementJson.get("id").getAsString();
+    JsonObject jsonRequest = new JsonObject();
+    jsonRequest.addProperty("cmd","action");
+    jsonRequest.addProperty("action","element:click");
+    JsonObject params = new JsonObject();
+    params.addProperty("elementId",elementId);
+    jsonRequest.add("params",(JsonElement)params);
+    log.fine(" Json Request = "+jsonRequest.toString());
+    String output = sendDataToBootstrap(jsonRequest.toString());
+    JsonObject outputJson = (JsonObject)jsonParser.parse(output);
+    outputJson.addProperty("sessionId",desiredCapabilities.get(JSON_SESSION_ID_KEY).toString());
+    output = outputJson.toString();
     log.fine(" Json Response = "+output);
     return output;
   }
   public String sendDataToBootstrap(String requestBody){
-    String outPut=null;
-    try{
-      DataOutputStream dout=new DataOutputStream(socket.getOutputStream()); 
-      dout.write(new String(requestBody+"\n").getBytes());
-      BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));   
-      while(!br.ready()) {
-       //log.fine("inside loop");	
-      }
-      log.fine("outside loop");	
-      outPut = br.readLine();
+    String output=null;
+    try{       
+      socket=new Socket("localhost",4724);
+      socket.setKeepAlive(true);      
+      BufferedReader stdIn = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+      DataOutputStream dout=new DataOutputStream(socket.getOutputStream());  
+      dout.write((requestBody+"\n").getBytes());
+      //dout.write(requestBody);
+        int count=0;
+        int c=0;
+        while(!stdIn.ready()) {
+/*          count++;
+          c=count/100000;
+          if(((c/10000.0)-((int)(c/10000)))==0.0)                                          
+            log.fine("Inside Loop handler : "+count);*/
+        }
+        output = stdIn.readLine();
+        log.fine(output); 
+        dout.close();
+        stdIn.close();
+        socket.close(); 
     }catch(Exception e){log.fine("Exception Caught " + e.getMessage());e.printStackTrace();}
-    return outPut;
+    return output;
   }
 }

@@ -76,10 +76,10 @@ public abstract class AbstractHttpResponseCodec implements ResponseCodec<HttpRes
   @Override
   public Response decode(HttpResponse encodedResponse) {
     String contentType = nullToEmpty(encodedResponse.getHeader(CONTENT_TYPE));
-    //System.out.println("Inside Abstract Response Codec content type ="+contentType);
+    System.out.println("Inside Abstract Response Codec content type ="+contentType);
     String content = encodedResponse.getContentString().trim();
     try {
-      //System.out.println("Inside Abstract Response Codec content type returning reconstruct value");
+      System.out.println("Inside Abstract Response Codec content type returning reconstruct value");
       String contentDisposition = nullToEmpty(encodedResponse.getHeader(CONTENT_DISPOSITION));
       if (contentDisposition.contains("NetworkHarFile")){
         return reconstructValue(json.toType(content, Response.class),encodedResponse);
@@ -145,7 +145,7 @@ public abstract class AbstractHttpResponseCodec implements ResponseCodec<HttpRes
       response.setState(errorCodes.toState(ErrorCodes.SUCCESS));
     }
     response.setByteArrayResponse(encodedResponse.getContent());
-      //System.out.println("Inside Abstract Response Codec byte content ="+encodedResponse.getContent());
+    System.out.println("Inside Abstract Response Codec byte content ="+encodedResponse.getContent());
     return response;
   }
 

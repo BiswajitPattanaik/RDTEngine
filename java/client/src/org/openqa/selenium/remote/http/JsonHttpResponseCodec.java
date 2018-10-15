@@ -37,6 +37,7 @@ public class JsonHttpResponseCodec extends AbstractHttpResponseCodec {
   @Override
   protected Response reconstructValue(Response response) {
     try {
+      System.out.println(response.toString());
       errorHandler.throwIfResponseFailed(response, 0);
     } catch (Exception e) {
       response.setValue(e);
